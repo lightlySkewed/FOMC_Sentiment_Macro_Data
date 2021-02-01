@@ -64,8 +64,8 @@ def find_new_vintage_percent_chg(dframe, FOMC_date_list, column_A_name='lag', co
             if col_last_index < prev_col_last_index:
                 dframe.drop(columns=col, inplace = True)
 
-        # export dframe to csv
-    dframe.to_csv('dframe.csv')
+    # export dframe to csv
+    # dframe.to_csv('dframe.csv')
     
     # create a list to store associated column dates 
     temp_coin_column_dates_list = []
@@ -115,58 +115,24 @@ def find_new_vintage_percent_chg(dframe, FOMC_date_list, column_A_name='lag', co
         # find the second to last value of the data immediately preceeding the meeting
         prev_coincident_value = dframe[coincident_col_ref].iloc[prev_coincident_index_int]
         
+        # find the lagged coincident value
+        lag_coincident_index_int = prev_coincident_index_int - 1
+        
+        #grab the third-to-last value of the column referenced above
+        lag_coincident_value = dframe[coincident_col_ref].iloc[lag_coincident_index_int]
+        
         # calculate the percent change in the variable immediately preceeding the meeting
         coincident_percent_change = (last_coincident_value - prev_coincident_value)/prev_coincident_value*100
+        
+        # calculate the lagged percent change
+        coincident_lag_percent_change = (prev_coincident_value - lag_coincident_value)/lag_coincident_value*100
         
         # append meeting and coincident percent change to coincident_results dict
         coincident_results[meet] = coincident_percent_change
         
-        # for each column in the dataframe
-        for col in dframe.columns:
-            
-            # find the last valid index of the current column
-            int_loc_of_columns_last_index = dframe.index.get_loc(dframe[col].last_valid_index())
-            
-            # if the last valid integer index of the current column is equal to one less than the 
-            # last valid integer index of the coincident column, then
-            if int_loc_of_columns_last_index == last_coincident_index_int - 1:
-                
-                # capture the date of the column being referenced as a datetime
-                col_date = dt.datetime.strptime(col[-8:], '%Y%m%d')
-            
-                # append the date to a temporary list
-                temp_prev_column_dates_list.append(col_date)
-                
-        # find the maximum date of this list
-        previous_vintage = max(temp_prev_column_dates_list)
+        # append meeting and lagged percent change to previous_results dict
+        previous_results[meet] = coincident_lag_percent_change
         
-        # construct the name of the appropriate previous FRED data column
-        previous_col_ref = FRED_prefix + dt.datetime.strftime(previous_vintage, '%Y%m%d')
-        
-        # find the last valid index of the appropriate previous FRED data column
-        last_previous_index = dframe[previous_col_ref].last_valid_index()
-        
-        # find the last valid integer index of the appropriate previous FRED data column
-        last_previous_index_int = dframe.index.get_loc(last_previous_index)
-        
-        # find the second to last valid integer index of the appropriate previous FRED data column
-        prev_previous_index_int = last_previous_index_int - 1
-
-        # find the last value of the previous data preceeding the meeting
-        last_previous_value = dframe[previous_col_ref].loc[last_previous_index]
-        
-        # grab the second-to-last value of the column referenced above
-        prev_previous_value = dframe[previous_col_ref].iloc[prev_previous_index_int]
-        
-        # calculate the percent change in the values
-        prev_percent_change = (last_previous_value - prev_previous_value)/prev_previous_value*100
-
-        # save the value to the 'previous' dict
-        previous_results[meet] = prev_percent_change
-
-        # print("Meeting Date: ", meet)
-        # print("Coincident Percent Change: ", coincident_percent_change)
-        # print("Previous Percent Change: ", prev_percent_change)
 
     # combine results into a single dataframe
     results = pd.DataFrame({column_A_name:pd.Series(previous_results),column_B_name:pd.Series(coincident_results)})
