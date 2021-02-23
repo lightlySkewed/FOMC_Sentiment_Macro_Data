@@ -161,6 +161,95 @@ median_price_forecasts.index.name = 'observation_date'
 FOMC_price_forecast_median = pd.merge_asof(FOMC_df, median_price_forecasts, left_index = True, right_index = True)
 
 
+# Read in and Format Vintage PCE Chain-Type Price Index Data from ALFRED File
+
+# URL: https://alfred.stlouisfed.org/
+# Note: Must select 'All' in the Vintage Dates section. 
+# Data as of 2/8/2021
+
+# read in ALFRED data
+df = pd.read_csv('Input_Data/JCXFE_2_Vintages_Starting_1999_07_29.txt', sep='\t', na_values='.')
+
+# set index to observation date
+df.set_index('observation_date', inplace=True)
+
+# drop any remaining columns with no observations
+df = df.dropna(how='all', axis=1)
+
+# calculate vintage percent change with helper function
+FOMC_pce_hist = find_new_vintage_percent_chg(df, FOMC_dates, column_A_name='lp', column_B_name='p', annualize_pct_chg=1)
+
+
+# Read in and Format Core PCE Median Forecast Data from Philly Fed
+
+# URL: https://www.philadelphiafed.org/surveys-and-data/pgdp
+# Note: 'Median Responses' as of 1/12/2021
+
+# read in data from file
+df = pd.read_excel(io='Input_Data/Median_COREPCE_Level.xlsx', sheet_name='Median_Level') #read in data
+
+# read in approximate Philly Fed release dates
+philly_dates = pd.read_csv('Input_Data/philly_release_dates.csv')
+
+# drop last col which shows up as NaT in index (not sure why this shows up...)
+df = df[df['YEAR'].notna()]
+
+# set length to correct Philly Fed release date length
+df = df[124:]
+
+# set index to index of Philly data df. this is manually alligned by the authors
+# the alignment is done to push a quarterly 'release date' to the corresponding 
+# observation quarter
+philly_dates = philly_dates.set_index(df.index)
+
+# set df index to philly fed period
+df = df.set_index(philly_dates['Period'])
+
+# # set df index to datetime
+df.index = pd.to_datetime(df.index)
+
+# remove blank rows
+df = df[df['COREPCE1'].notna()]
+
+# rename columns
+df['p1'] = df['COREPCE2']
+df['p2'] = df['COREPCE3']
+
+# identify columns to retain
+median_pce_forecasts = ['p1', 'p2']
+
+# filter for wanted columns
+median_pce_forecasts = df.filter(median_pce_forecasts, axis=1)
+
+# set index to observation date
+median_pce_forecasts.index.name = 'observation_date'
+
+# merge dataframes to retain observations on FOMC meeting dates
+FOMC_pce_forecast_median = pd.merge_asof(FOMC_df, median_pce_forecasts, left_index = True, right_index = True)
+
+
+# Join GDP Price Data with Core PCE Data When Available
+
+# join historic and forecast gdp price data
+price_df = FOMC_price_hist.join(FOMC_price_forecast_median)
+
+# join historic and forecast pce data
+pce_df = FOMC_pce_hist.join(FOMC_pce_forecast_median)
+
+# slice gdp price data for pre 2007
+part1 = price_df[:'2007-01-31']
+
+# slice pce data for post 2007
+part2 = pce_df['2007-03-21':]
+
+# rename columns to conform to macro_df variables
+part1.rename(columns={"pricel1": "lp", "price": "p", "pricef1med": "p1", "pricef2med": "p2"},inplace = True)
+part2.rename(columns={"pcel1": "lp", "pce": "p", "pcef1med": "p1", "pcef2med": "p2"},inplace = True)
+
+# concat parts to single df
+FOMC_prices = pd.concat([part1, part2], axis=0)
+
+
 # Read in and Format Vintage Core Inflation Data -- for Taylor Regression
 
 # read in ALFRED data
@@ -228,7 +317,7 @@ FOMC_target_hist = df
 
 # Combine Macro Data from ALFRED, FRED, & Philly Fed
 
-macro_df = FOMC_gdp_hist.join([FOMC_gdp_forecast_median, FOMC_price_hist, FOMC_price_forecast_median, FOMC_corecpi_growth, FOMC_gdp_gap, FOMC_target_hist])
+macro_df = FOMC_gdp_hist.join([FOMC_gdp_forecast_median, FOMC_prices, FOMC_corecpi_growth, FOMC_gdp_gap, FOMC_target_hist])
 macro_df.index.names = ['date']
 macro_df.to_csv('Output_Data/macro_df.csv')
 
