@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import datetime as dt
+import statsmodels.formula.api as smf
 
 def find_new_vintage_percent_chg(dframe1, FOMC_date_list, column_A_name='lag', column_B_name='coincident', annualize_pct_chg=0, pct_chg_year_ago=0):
     '''returns a data frame of vintage lagged and coincident percent change values from vintage levels'''
@@ -232,5 +233,224 @@ def find_log_pct_chg_gdps(gdp_frame, pot_gdp_frame, FOMC_date_list, column_A_nam
         
     # combine results into a single dataframe
     results = pd.DataFrame({column_A_name:pd.Series(pot_gdp_results),column_B_name:pd.Series(gdp_results)})
+    
+    return results
+    
+def find_growth_gap(gdp_frame, FOMC_date_list, column_A_name='trend', column_B_name='actual', column_C_name='spread'):
+    '''returns a data frame of vintage lagged and coincident percent change values from vintage levels'''
+    '''this code takes forever to run. it needs to be refactored.'''
+    
+    # take the natural log of both real gdp and real potential gdp
+#     gdp_frame = (np.log(gdp_frame))
+    
+    # create a dictionary to store the 
+    trend_dict = {}
+    
+    # create a dictionary to store the 
+    actual_dict = {}
+    
+    # create a dictionary to store the 
+    spread_dict = {}
+    
+    # create a dataframe to store and return the results
+    rDf = pd.DataFrame(index=FOMC_date_list)
+    
+    # remove benchmark revisions where last observation is left uncalculated/ unreported
+    # for example, see GDPC1 from FRED, 20031210 vintage, last obs ~07/01/2003 
+    for col in gdp_frame:
+        # get location of current column
+        i = gdp_frame.columns.get_loc(col)
+        # if it isn't the first column
+        if i > 0:
+            # find the index of the current column's last observation
+            col_last_index = gdp_frame.iloc[:, i].last_valid_index()
+            # find the index of the previous column's last observation
+            prev_col_last_index = gdp_frame.iloc[:, i - 1].last_valid_index()
+            # if the current column is shorter than the previous column
+            if col_last_index < prev_col_last_index:
+                # drop the current column
+                gdp_frame.drop(columns=col, inplace = True)
+    
+    # create a list to store associated column dates 
+    temp_gdp_column_dates_list = []
+
+    # capture the FRED column prefix including '_'
+    gdp_FRED_prefix = gdp_frame.columns[-1][:len(gdp_frame.columns[-1])-len(gdp_frame.columns[-1][-8:])]
+
+    # for each FOMC meeting
+    for meet in FOMC_date_list:
+
+        # clear list after previous iteration
+        temp_gdp_column_dates_list.clear()
+
+        # find the gdp vintages before the current meeting
+        for col in gdp_frame.columns:
+
+            # capture the date of the column being referenced as a datetime
+            col_date = dt.datetime.strptime(col[-8:], '%Y%m%d')
+
+            # if the current column's date is before the meeting's date
+            if col_date < meet:
+
+                # add the column date to a temporary list of column dates
+                temp_gdp_column_dates_list.append(col_date)
+
+        # find the largest date in the temporary list. this should be the date of the vintage that immediately preceeds the meeting being referenced
+        gdp_vintage = max(temp_gdp_column_dates_list)
+
+        # construct the name of the appropriate FRED data column
+        gdp_col_ref = gdp_FRED_prefix + dt.datetime.strftime(gdp_vintage, '%Y%m%d')
+
+        # find the needed range of data
+        last_valid_gdp_index = gdp_frame[gdp_col_ref].last_valid_index()
+        first_valid_gdp_index = gdp_frame[gdp_col_ref].first_valid_index()
+        
+        # create a df of the needed range of data
+        growth_df = gdp_frame.loc[first_valid_gdp_index:last_valid_gdp_index , gdp_col_ref]
+
+        # create an empty df for recursive regressions
+        reg_df = pd.DataFrame
+        
+        # create empty lists for trend and actual growth
+        trend_growth = []
+        actual_growth = []
+        
+        # loop through observations for trend regressions -- ln(gdp) ~ t + e
+        for obs in growth_df.index:
+            
+            # if statement to allow for actual growth calculations
+            if growth_df.index.get_loc(obs) > 5:
+                
+                # set start and end of df for linear regression and trend estimation
+                df_start = 6
+                df_end = growth_df.index.get_loc(obs)
+                
+                # build the df for the growth trend regression
+                t = pd.Series(range(0,df_end-5))
+                gdp = growth_df.iloc[df_start:df_end+1]
+                gdp.name = 'gdp'
+                t.name = 't'
+                t.index = gdp.index
+                reg_df = pd.concat([gdp, t], axis=1)
+                reg_df['ln.gdp'] = np.log(reg_df['gdp'])
+                
+                # setup regression variables
+                predictors = ['t']
+                X = reg_df[predictors]
+                y = reg_df['ln.gdp']
+                
+                # Initialise and fit linear regression model using `statsmodels`
+                model = smf.ols('y ~ X', data=reg_df)
+                model = model.fit()
+                
+                # append annualized growth trend to list
+                trend_growth.append(np.exp(model.params[1]*4)-1)
+
+                # find old and new observations for actual growth calculation
+                old = np.log(growth_df.iloc[df_end - 4])
+                new = np.log(growth_df.iloc[df_end])
+                
+                # append actual growth to list
+                actual_growth.append(new - old)
+                
+        # assign meeting-wise observations to dictionaries
+        trend_dict[meet] = trend_growth[-1]
+        actual_dict[meet] = actual_growth[-1]
+        spread_dict[meet] = actual_growth[-1] - trend_growth[-1]
+
+        # combine results into a single dataframe
+        results = pd.DataFrame({column_A_name:pd.Series(trend_dict),column_B_name:pd.Series(actual_dict),column_C_name:pd.Series(spread_dict)})
+
+    return results
+    
+def find_cpi_growth(cpi_frame, FOMC_date_list, column_A_name='cpi'):
+    '''returns a data frame of vintage average CPI growth for the previous quarter at each FOMC meeting date'''
+            
+    # create a dictionary to store the 
+    cpi_dict = {}
+    
+    # create a dataframe to store and return the results
+    results = pd.DataFrame(index=FOMC_date_list)
+    
+    # remove benchmark revisions where last observation is left uncalculated/ unreported
+    # for example, see GDPC1 from FRED, 20031210 vintage, last obs ~07/01/2003 
+    for col in cpi_frame:
+        # get location of current column
+        i = cpi_frame.columns.get_loc(col)
+        # if it isn't the first column
+        if i > 0:
+            # find the index of the current column's last observation
+            col_last_index = cpi_frame.iloc[:, i].last_valid_index()
+            # find the index of the previous column's last observation
+            prev_col_last_index = cpi_frame.iloc[:, i - 1].last_valid_index()
+            # if the current column is shorter than the previous column
+            if col_last_index < prev_col_last_index:
+                # drop the current column
+                cpi_frame.drop(columns=col, inplace = True)
+    
+    # create a list to store associated column dates 
+    temp_cpi_column_dates_list = []
+
+    # capture the FRED column prefix including '_'
+    cpi_FRED_prefix = cpi_frame.columns[-1][:len(cpi_frame.columns[-1])-len(cpi_frame.columns[-1][-8:])]
+    
+    # for each FOMC meeting
+    for meet in FOMC_date_list:
+
+        # clear list after previous iteration
+        temp_cpi_column_dates_list.clear()
+
+        # find the gdp vintages before the current meeting
+        for col in cpi_frame.columns:
+
+            # capture the date of the column being referenced as a datetime
+            col_date = dt.datetime.strptime(col[-8:], '%Y%m%d')
+
+            # if the current column's date is before the meeting's date
+            if col_date < meet:
+
+                # add the column date to a temporary list of column dates
+                temp_cpi_column_dates_list.append(col_date)
+
+        # find the largest date in the temporary list. this should be the date of the vintage that immediately preceeds the meeting being referenced
+        cpi_vintage = max(temp_cpi_column_dates_list)
+
+        # construct the name of the appropriate FRED data column
+        cpi_col_ref = cpi_FRED_prefix + dt.datetime.strftime(cpi_vintage, '%Y%m%d')
+        cpi_col_ref_int = cpi_frame.columns.get_loc(cpi_col_ref)
+        
+        # find the needed range of data
+        last_valid_cpi_index = cpi_frame[cpi_col_ref].last_valid_index()
+        last_valid_cpi_index_int = cpi_frame.index.get_loc(last_valid_cpi_index) + 1
+        first_valid_cpi_index_int = last_valid_cpi_index_int - 3
+        
+        # calculate the last available 3 months worth of data
+        cpi_growth = np.mean(cpi_frame[cpi_col_ref].iloc[first_valid_cpi_index_int:last_valid_cpi_index_int])
+                            
+        # assign meeting-wise observations to dictionary
+        cpi_dict[meet] = cpi_growth
+
+        # combine results into a single dataframe
+        results = pd.DataFrame({column_A_name:pd.Series(cpi_dict)})
+        
+    return results
+    
+def daily_to_quarterly_avg_percent_chg(dframe, FOMC_date_list, column_A_name = 'col', target_col = 'target'):
+    '''returns a dataframe which contains, for each Fed meeting, the quarterly average of the yoy percent change in a variable preceeding the meeting'''
+
+    # create a date list containing all possible dates between the start and end of the passed dframe
+    full_dates = pd.date_range(dframe.first_valid_index(), dframe.last_valid_index())
+
+    # rebuild dframe index to contain all possible dates
+    dframe = dframe.reindex(full_dates)
+    
+    # fill forward the previous observations
+    dframe = dframe.fillna(method = 'ffill')
+
+    # calculat the yoy percent change
+    dframe[column_A_name] = dframe[target_col].pct_change(365)
+
+    # take the rolling quarterly average of the yoy percent change
+    results = dframe.rolling(window=91)[column_A_name].mean()
     
     return results
