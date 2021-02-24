@@ -4,11 +4,11 @@ This repository contains all data files and associated code needed to generate t
 
 Specifically, this code does several things:
 	
-	1) It generates multi-horizon views of Real GDP Growth, real GDP price level Growth, and core PCE price level growth for each meeting of the FOMC from 2/2/2000 until 9/16/2020. These are horizons are then used to 'shock' our raw sentiment signal, in order to remove potential endogeneity issues from the subsequent Taylor and predictive models.
+1) It generates multi-horizon views of Real GDP Growth, real GDP price level Growth, and core PCE price level growth for each meeting of the FOMC from 2/2/2000 until 9/16/2020. These are horizons are then used to 'shock' our raw sentiment signal, in order to remove potential endogeneity issues from the subsequent Taylor and predictive models.
 	
-	2) It ingests and formats Fed Funds rate, corecpi, and Real GDP data for the subsequent Taylor and predictive models.
+2) It ingests and formats Fed Funds rate, corecpi, and Real GDP data for the subsequent Taylor and predictive models.
 	
-	3) It combines and aligns all of the data before outputting the data into a dataframe 'macro_df.csv'
+3) It combines and aligns all of the data before outputting the data into a dataframe 'macro_df.csv'
 
 Our aim was to make this research as easily replicable as possible. Therefore, variable selection hinged on the ease of aquizition and use. This project pulls heavily from Federal Reserve Bank of St. Louis's ALFRED database, and forecast data from the Federal Reserve Bank of Philadelphia's Survey of Professional Forecaster (SPF) database. Links to the data can be found in the code.
 
