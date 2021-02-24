@@ -37,8 +37,8 @@ NOTES:
 
 RGDP or GDP: This is U.S. Real (inflation-adjusted) Gross Domestic Product (RGDP), a measure of growth for the United States economy. It can be thought of as the sum of all goods sold at a certain price over a period. In this dataset it is expressed in percent change for stationarity purposes.
 
-Core PCE: Insert definition...
+Core CPI: Measures inflation from the aspect of the consumer. Absent more volitile food and energy prices. Produced by the BEA.
 
-Core CPI: Insert definition...
+Core PCE: Measures inflation from the aspect of the consumer. Absent more volitile food and energy prices. Differs from CPI primarily in construction method (Fisher-Ideal instead of Laspeyres), and component weights. Produced by the BLS.
 
-GDP Price Index: This is the GDP price index. While it captures price inflation in a manner similar to PCE (above), it differs in two primary ways for the purpose of this research. 1) This index includes not only food and energy prices, but all prices which contribute to U.S. GDP -- making it more volatile. 2) It is included as a variable in the SPF survey from the beginning, and therefor offers us a much deeper history. This contrasts with core PCE and core CPI, which are available only from 2007 on.
+GDP Price Index: Measures inflation from the perspective of consumers, producers (businesses), and the Government. While it captures price inflation in a manner similar to PCE (above), it differs in two primary ways for the purpose of this research. 1) This index includes not only food and energy prices, but all prices which contribute to U.S. GDP -- making it more volatile. 2) It is included as a variable in the SPF survey from the beginning, and therefor offers us a much deeper history. This contrasts with core PCE and core CPI, which are available only from 2007 on. Produced by the BEA.
