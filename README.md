@@ -35,6 +35,8 @@ iGetByWithALittle.py
 
 NOTES:
 
+Calculating the GDP trend component requires hundreds of linear regressions for each 'vintage' of GDP (or, better put, each FOMC meeting). This can take quite some time to complete (3-5 minutes). Users are instructed to go make a tea.
+
 RGDP or GDP: This is U.S. Real (inflation-adjusted) Gross Domestic Product (RGDP), a measure of growth for the United States economy. It can be thought of as the sum of all goods sold at a certain price over a period. In this dataset it is expressed in percent change for stationarity purposes.
 
 Core CPI: Measures inflation from the aspect of the consumer. Absent more volitile food and energy prices. Produced by the BEA.
