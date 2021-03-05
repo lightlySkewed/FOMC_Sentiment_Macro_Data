@@ -27,7 +27,7 @@ Jupyter Notebook
 Dependencies include:
 Pandas
 datetime
-import statsmodels.formula.api as smf
+statsmodels.formula.api
 alfredhelperfile.py
 
 
