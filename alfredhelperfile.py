@@ -13,7 +13,7 @@ def find_new_vintage_percent_chg(dframe1, FOMC_date_list, column_A_name='lag', c
     previous_results = {}
     
     # export dframe1 to csv
-    dframe1.to_csv('dframe1.csv')
+    #dframe1.to_csv('dframe1.csv')
     
     # remove benchmark revisions where last observation is left uncalculated
     # for example, see GDPC1 from FRED, 20031210 vintage, last obs ~07/01/2003 
