@@ -25,11 +25,11 @@ Python 3.8.5
 Jupyter Notebook
 
 Dependencies include:
-Pandas
+pandas
+numpy
 datetime
 statsmodels.formula.api
 alfredhelperfile.py
-
 
 NOTES:
 
