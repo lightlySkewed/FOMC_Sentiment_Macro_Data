@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 
-from alfredhelperfile import find_new_vintage_percent_chg, find_growth_gap, find_cpi_growth
+from alfredhelperfile import find_vintage_percent_chg, find_growth_gap, find_price_growth
 
 
 # Read in FOMC Meeting Dates
@@ -42,11 +42,14 @@ df = pd.read_csv('Input_Data/GDPC1_2_Vintages_Starting_1991_12_04.txt', sep='\t'
 # set index to observation date
 df.set_index('observation_date', inplace=True)
 
+# set df index to datetime
+df.index = pd.to_datetime(df.index)
+
 # drop any remaining columns with no observations
 df = df.dropna(how='all', axis=1)
 
 # calculate vintage percent changes with helper function
-FOMC_gdp_hist = find_new_vintage_percent_chg(df, FOMC_dates, column_A_name='lg', column_B_name='g')
+FOMC_gdp_hist = find_vintage_percent_chg(df, FOMC_dates, column_A_name='lg', column_B_name='g')
 
 
 # Read in and Format Median Real GDP Forecast Data from FRB Philadelphia
@@ -77,10 +80,10 @@ df = df.set_index(philly_dates['Period'])
 df.index = pd.to_datetime(df.index)
 
 # calculate the one period ahead pct change from 1evels 
-df['g1'] = df[['RGDP1', 'RGDP2']].apply(lambda row: (row.iloc[1]-row.iloc[0])/row.iloc[0]*100, axis=1)
+df['g1'] = df[['RGDP1', 'RGDP2']].apply(lambda row: (row.iloc[1]-row.iloc[0])/row.iloc[0]*100*4, axis=1)
 
 # calculate the two period ahead pct change from 1evels 
-df['g2'] = df[['RGDP2', 'RGDP3']].apply(lambda row: (row.iloc[1]-row.iloc[0])/row.iloc[0]*100, axis=1)
+df['g2'] = df[['RGDP2', 'RGDP3']].apply(lambda row: (row.iloc[1]-row.iloc[0])/row.iloc[0]*100*4, axis=1)
 
 # identify columns to retain
 median_GDP_forecasts = ['g1', 'g2']
@@ -95,7 +98,7 @@ median_GDP_forecasts.index.name = 'observation_date'
 FOMC_gdp_forecast_median = pd.merge_asof(FOMC_df, median_GDP_forecasts, left_index = True, right_index = True)
 
 
-# Read in and Format Vintage GDP Chain-Type Price Index Data from ALFRED File
+# Read in and Format Vintage GDP Chain-Type Price Index Data from ALFRED File (Percent Change from a Year Ago)
 
 # URL: https://alfred.stlouisfed.org/series/downloaddata?seid=GDPCTPI
 # NOTE: Must select 'All' in the Vintage Dates section. Data as of 1/28/2021
@@ -106,11 +109,14 @@ df = pd.read_csv('Input_Data/GDPCTPI_2_Vintages_Starting_1996_01_19.txt', sep='\
 # set index to observation date
 df.set_index('observation_date', inplace=True)
 
+# set df index to datetime
+df.index = pd.to_datetime(df.index)
+
 # drop any remaining columns with no observations
 df = df.dropna(how='all', axis=1)
 
 # calculate vintage percent change with helper function
-FOMC_price_hist = find_new_vintage_percent_chg(df, FOMC_dates, column_A_name='lp', column_B_name='p', annualize_pct_chg=1)
+FOMC_price_hist = find_vintage_percent_chg(df, FOMC_dates, column_A_name='lp', column_B_name='p')
 
 
 # Read in and Format GDP Price Percent Change (Growth) Forecast from Philly Fed
@@ -173,11 +179,14 @@ df = pd.read_csv('Input_Data/JCXFE_2_Vintages_Starting_1999_07_29.txt', sep='\t'
 # set index to observation date
 df.set_index('observation_date', inplace=True)
 
+# set df index to datetime
+df.index = pd.to_datetime(df.index)
+
 # drop any remaining columns with no observations
 df = df.dropna(how='all', axis=1)
 
 # calculate vintage percent change with helper function
-FOMC_pce_hist = find_new_vintage_percent_chg(df, FOMC_dates, column_A_name='lp', column_B_name='p', annualize_pct_chg=1)
+FOMC_pce_hist = find_vintage_percent_chg(df, FOMC_dates, column_A_name='lp', column_B_name='p')
 
 
 # Read in and Format Core PCE Median Forecast Data from Philly Fed
@@ -205,7 +214,7 @@ philly_dates = philly_dates.set_index(df.index)
 # set df index to philly fed period
 df = df.set_index(philly_dates['Period'])
 
-# # set df index to datetime
+# set df index to datetime
 df.index = pd.to_datetime(df.index)
 
 # remove blank rows
@@ -250,25 +259,26 @@ part2.rename(columns={"pcel1": "lp", "pce": "p", "pcef1med": "p1", "pcef2med": "
 FOMC_prices = pd.concat([part1, part2], axis=0)
 
 
-# Read in and Format Vintage Core Inflation Data -- for Taylor Regression
+# Read in and Format Vintage Core PCE Inflation Data -- for Taylor Regression
 
 # read in ALFRED data
 # https://alfred.stlouisfed.org/
-# data as of 2/23/2021
-# must select percent change from a year ago as units 
-# note: CPI was chosen as ALFRED didn't start recording vintage PCE data until ~2013
+# data as of 3/5/2021
 
 # read in core cpi data from file
-df = pd.read_csv('Input_Data/CPILFESL_2_Vintages_Starting_1996_12_12.txt', sep='\t', na_values='.')
+df = pd.read_csv('Input_Data/PCEPILFE_2_Vintages_Starting_2000_08_01.txt', sep='\t', na_values='.')
 
 # set index to observation date
 df.set_index('observation_date', inplace=True)
+
+# set df index to datetime
+df.index = pd.to_datetime(df.index)
 
 # drop any remaining columns with no observations
 df = df.dropna(how='all', axis=1)
 
 # calculate vintage percent changes with helper function
-FOMC_corecpi_growth = find_cpi_growth(df, FOMC_dates, column_A_name='corecpi')
+FOMC_corepce_growth = find_price_growth(df, FOMC_dates[4:], column_A_name='corepce')
 
 
 # Calculate Output Gap from Real GDP and Trend Growth -- for Taylor Regression
@@ -285,6 +295,7 @@ df1.set_index('observation_date', inplace=True)
 
 # trim dataframe
 df1 = df1['1959-07-01':]
+# df1 = df1['1980-01-01':]
 
 # remove bad benchmark year
 # should build this into the find growt f(n). do this if publishing.
@@ -317,7 +328,7 @@ FOMC_target_hist = df
 
 # Combine Macro Data from ALFRED, FRED, & Philly Fed
 
-macro_df = FOMC_gdp_hist.join([FOMC_gdp_forecast_median, FOMC_prices, FOMC_corecpi_growth, FOMC_gdp_gap, FOMC_target_hist])
+macro_df = FOMC_gdp_hist.join([FOMC_gdp_forecast_median, FOMC_prices, FOMC_corepce_growth, FOMC_gdp_gap, FOMC_target_hist])
 macro_df.index.names = ['date']
 macro_df.to_csv('Output_Data/macro_df.csv')
 
