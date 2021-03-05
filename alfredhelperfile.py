@@ -3,7 +3,7 @@ import numpy as np
 import datetime as dt
 import statsmodels.formula.api as smf
 
-def find_new_vintage_percent_chg(dframe1, FOMC_date_list, column_A_name='lag', column_B_name='coincident', annualize_pct_chg=0, pct_chg_year_ago=0):
+def find_new_vintage_percent_chg(dframe1, FOMC_date_list, column_A_name='lag', column_B_name='coincident'):
     '''returns a data frame of vintage lagged and coincident percent change values from vintage levels'''
     '''this code takes forever to run. it needs to be refactored.'''
     # create a dictionary to store the conincident vintages' percent changes
@@ -12,21 +12,26 @@ def find_new_vintage_percent_chg(dframe1, FOMC_date_list, column_A_name='lag', c
     # create a dictionary to store the previous vintages' percent changes
     previous_results = {}
     
-    # create a dataframe to store and return the results
-    rDf = pd.DataFrame(index=FOMC_date_list)
+    # export dframe1 to csv
+    dframe1.to_csv('dframe1.csv')
     
     # remove benchmark revisions where last observation is left uncalculated
     # for example, see GDPC1 from FRED, 20031210 vintage, last obs ~07/01/2003 
     for col in dframe1:
         i = dframe1.columns.get_loc(col)
+        # make sure there is a previous column to compare to
         if i > 0:
+            # get the current column's last index
             col_last_index = dframe1.iloc[:, i].last_valid_index()
+            
+            # get the previous column's last index
             prev_col_last_index = dframe1.iloc[:, i - 1].last_valid_index()
+            
             if col_last_index < prev_col_last_index:
                 dframe1.drop(columns=col, inplace = True)
 
     # export dframe1 to csv
-    # dframe1.to_csv('dframe1.csv')
+#     dframe1.to_csv('dframe1.csv')
     
     # create a list to store associated column dates 
     temp_coin_column_dates_list = []
@@ -48,7 +53,7 @@ def find_new_vintage_percent_chg(dframe1, FOMC_date_list, column_A_name='lag', c
             
             # capture the date of the column being referenced as a datetime
             col_date = dt.datetime.strptime(col[-8:], '%Y%m%d')
-
+                        
             # # if the current column's date is before the meeting's date
             if col_date < meet:
 
@@ -61,54 +66,47 @@ def find_new_vintage_percent_chg(dframe1, FOMC_date_list, column_A_name='lag', c
         # construct the name of the appropriate FRED data column
         coincident_col_ref = FRED_prefix + dt.datetime.strftime(coincident_vintage, '%Y%m%d')
         
-        # find the date index of the last non-missing 
+        # find the date index of the last non-missing observation
         last_coincident_index = dframe1[coincident_col_ref].last_valid_index()
-        
-        # find the last value of the data preceeding the meeting
-        last_coincident_value = dframe1[coincident_col_ref].loc[last_coincident_index]
-        
-        # find the date index's index integer value 
+
+        # find the date index's index integer value so we can calculate lags
         last_coincident_index_int = dframe1.index.get_loc(last_coincident_index)
         
-        # find the preceeding observation's int index value
-        if pct_chg_year_ago == 0:
-            prev_coincident_index_int = last_coincident_index_int - 1
-        elif pct_chg_year_ago == 1:
-            prev_coincident_index_int = last_coincident_index_int - 12
+        # find the last value of the data preceeding the meeting
+        last_coincident_value = dframe1[coincident_col_ref].iloc[last_coincident_index_int]
+                
+        # find the one-year-ago observation's int index value
+        one_year_ago_coincident_index_int = last_coincident_index_int - 4
         
-        # find the second to last value of the data immediately preceeding the meeting
-        prev_coincident_value = dframe1[coincident_col_ref].iloc[prev_coincident_index_int]
+        # find the one-year-ago obsesrvation's value 
+        one_year_ago_coincident_value = dframe1[coincident_col_ref].iloc[one_year_ago_coincident_index_int]
         
-        # find the lagged coincident index
-        if pct_chg_year_ago == 0:
-            lag_coincident_index_int = prev_coincident_index_int - 1
-        elif pct_chg_year_ago == 1:
-            lag_coincident_index_int = prev_coincident_index_int - 12
+        # find the one period lagged coincident index
+        lag_coincident_index_int = last_coincident_index_int - 1
         
-        #grab the lagged value of the coincident column
+        #grab the one period lagged value of the coincident column
         lag_coincident_value = dframe1[coincident_col_ref].iloc[lag_coincident_index_int]
         
-        # calculate the percent change in the variable immediately preceeding the meeting
-        if annualize_pct_chg == 0:
-            coincident_percent_change = (last_coincident_value - prev_coincident_value)/prev_coincident_value*100
-        elif annualize_pct_chg == 1:
-            coincident_percent_change = (last_coincident_value - prev_coincident_value)/prev_coincident_value*100*4        
-        elif annualize_pct_chg == 2:
-            coincident_percent_change = (last_coincident_value - prev_coincident_value)/prev_coincident_value*100*12
+        #grab the lagged index from one year before in the coincident column
+        lag_one_year_ago_coincident_index_int = lag_coincident_index_int - 4
         
-        # calculate the lagged percent change
-        if annualize_pct_chg == 0:
-            coincident_lag_percent_change = (prev_coincident_value - lag_coincident_value)/lag_coincident_value*100
-        elif annualize_pct_chg == 1:
-            coincident_lag_percent_change = (prev_coincident_value - lag_coincident_value)/lag_coincident_value*100*4
-        elif annualize_pct_chg == 2:
-            coincident_lag_percent_change = (prev_coincident_value - lag_coincident_value)/lag_coincident_value*100*12
+        #grab the value from one year before in the coincident column
+        lag_one_year_ago_coincident_value = dframe1[coincident_col_ref].iloc[lag_one_year_ago_coincident_index_int]
+        
+        # calculate the percent change in the variable immediately preceeding the meeting
+        coincident_percent_change = (last_coincident_value - one_year_ago_coincident_value)/one_year_ago_coincident_value*100
+
+       # calculate the one period lagged percent change
+        lag_coincident_percent_change = (lag_coincident_value - lag_one_year_ago_coincident_value)/lag_one_year_ago_coincident_value*100
+#         print("Meeting:", meet)
+#         print("Lagged Value:", lag_coincident_value)
+#         print("Prev Value:", prev_coincident_value)
         
         # append meeting and coincident percent change to coincident_results dict
         coincident_results[meet] = coincident_percent_change
         
         # append meeting and lagged percent change to previous_results dict
-        previous_results[meet] = coincident_lag_percent_change
+        previous_results[meet] = lag_coincident_percent_change
         
 
     # combine results into a single dataframe
@@ -354,9 +352,9 @@ def find_growth_gap(gdp_frame, FOMC_date_list, column_A_name='trend', column_B_n
                 actual_growth.append(new - old)
                 
         # assign meeting-wise observations to dictionaries
-        trend_dict[meet] = trend_growth[-1]
-        actual_dict[meet] = actual_growth[-1]
-        spread_dict[meet] = actual_growth[-1] - trend_growth[-1]
+        trend_dict[meet] = trend_growth[-1]*100
+        actual_dict[meet] = actual_growth[-1]*100
+        spread_dict[meet] = (actual_growth[-1] - trend_growth[-1])*100
 
         # combine results into a single dataframe
         results = pd.DataFrame({column_A_name:pd.Series(trend_dict),column_B_name:pd.Series(actual_dict),column_C_name:pd.Series(spread_dict)})
