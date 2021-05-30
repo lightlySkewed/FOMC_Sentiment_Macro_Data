@@ -1,16 +1,23 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[53]:
+
+
 get_ipython().run_line_magic('config', 'Completer.use_jedi = False #for intellisense compatibility w/ Jupyter Notebook')
 
 import pandas as pd
 import numpy as np
 import datetime as dt
+import matplotlib.pyplot as plt
 
-from alfredhelperfile import find_vintage_percent_chg, find_growth_gap, find_price_growth
+from alfredhelperfile import find_growth_gap, find_price_growth, find_vintage_percent_chg
 
 
 # Read in FOMC Meeting Dates
+
+# In[54]:
+
 
 # read in FOMC meeting dates from author's file
 df = pd.read_csv('Input_Data/fomc_dates.csv')
@@ -33,6 +40,9 @@ FOMC_df.index.name = 'observation_date'
 
 # Read in and Format Vintage Real GDP Data from ALFRED File
 
+# In[55]:
+
+
 # URL: https://alfred.stlouisfed.org/series/downloaddata?seid=GDPC1
 # Note: Must select 'All' in the Vintage Dates section. Data as of 1/28/2021
 
@@ -54,9 +64,13 @@ FOMC_gdp_hist = find_vintage_percent_chg(df, FOMC_dates, column_A_name='lg', col
 
 # Read in and Format Median Real GDP Forecast Data from FRB Philadelphia
 
+# In[56]:
+
+
 # URL: https://www.philadelphiafed.org/surveys-and-data/rgdp
 # Note: 'Median Responses' as of 1/10/2021
 
+# read in Philly Fed Real GDP in levels
 df = pd.read_excel(io='Input_Data/Median_RGDP_Level.xlsx', sheet_name='Median_Level') #read in data
 
 # read in approximate Philly Fed release dates
@@ -100,6 +114,9 @@ FOMC_gdp_forecast_median = pd.merge_asof(FOMC_df, median_GDP_forecasts, left_ind
 
 # Read in and Format Vintage GDP Chain-Type Price Index Data from ALFRED File (Percent Change from a Year Ago)
 
+# In[57]:
+
+
 # URL: https://alfred.stlouisfed.org/series/downloaddata?seid=GDPCTPI
 # NOTE: Must select 'All' in the Vintage Dates section. Data as of 1/28/2021
 
@@ -120,6 +137,9 @@ FOMC_price_hist = find_vintage_percent_chg(df, FOMC_dates, column_A_name='lp', c
 
 
 # Read in and Format GDP Price Percent Change (Growth) Forecast from Philly Fed
+
+# In[58]:
+
 
 # URL: https://www.philadelphiafed.org/surveys-and-data/pgdp
 # Note: 'Median Responses' as of 1/12/2021
@@ -169,6 +189,9 @@ FOMC_price_forecast_median = pd.merge_asof(FOMC_df, median_price_forecasts, left
 
 # Read in and Format Vintage PCE Chain-Type Price Index Data from ALFRED File
 
+# In[59]:
+
+
 # URL: https://alfred.stlouisfed.org/
 # Note: Must select 'All' in the Vintage Dates section. 
 # Data as of 2/8/2021
@@ -190,6 +213,9 @@ FOMC_pce_hist = find_vintage_percent_chg(df, FOMC_dates, column_A_name='lp', col
 
 
 # Read in and Format Core PCE Median Forecast Data from Philly Fed
+
+# In[60]:
+
 
 # URL: https://www.philadelphiafed.org/surveys-and-data/pgdp
 # Note: 'Median Responses' as of 1/12/2021
@@ -239,6 +265,9 @@ FOMC_pce_forecast_median = pd.merge_asof(FOMC_df, median_pce_forecasts, left_ind
 
 # Join GDP Price Data with Core PCE Data When Available
 
+# In[61]:
+
+
 # join historic and forecast gdp price data
 price_df = FOMC_price_hist.join(FOMC_price_forecast_median)
 
@@ -260,6 +289,9 @@ FOMC_prices = pd.concat([part1, part2], axis=0)
 
 
 # Read in and Format Vintage Core PCE Inflation Data -- for Taylor Regression
+
+# In[62]:
+
 
 # read in ALFRED data
 # https://alfred.stlouisfed.org/
@@ -283,6 +315,9 @@ FOMC_corepce_growth = find_price_growth(df, FOMC_dates[4:], column_A_name='corep
 
 # Calculate Output Gap from Real GDP and Trend Growth -- for Taylor Regression
 
+# In[63]:
+
+
 # read in ALFRED data
 # https://alfred.stlouisfed.org/
 # data as of 2/10/2021
@@ -298,7 +333,8 @@ df1 = df1['1959-07-01':]
 # df1 = df1['1980-01-01':]
 
 # remove bad benchmark year
-# should build this into the find growt f(n). do this if publishing.
+# should build this into the find growt f(n). do this if publishing. 
+# Check if I wrote this into the gap function...
 df1 = df1.drop('GDPC1_19991028', axis = 1)
 
 # drop any remaining columns with no observations
@@ -309,6 +345,9 @@ FOMC_gdp_gap = find_growth_gap(df1, FOMC_dates, column_C_name = 'gdpgap')
 
 
 # Read in and Format FOMC Target Data from Author's Calculations Based on ALFRED Data
+
+# In[64]:
+
 
 # to save time, this work was imported from a previous calculation. we should rebuild here if published
 df = pd.read_csv('Input_Data/fomc_rates.csv', index_col=0)
@@ -327,6 +366,9 @@ FOMC_target_hist = df
 
 
 # Combine Macro Data from ALFRED, FRED, & Philly Fed
+
+# In[65]:
+
 
 macro_df = FOMC_gdp_hist.join([FOMC_gdp_forecast_median, FOMC_prices, FOMC_corepce_growth, FOMC_gdp_gap, FOMC_target_hist])
 macro_df.index.names = ['date']
