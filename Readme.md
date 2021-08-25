@@ -33,6 +33,8 @@ alfredhelperfile.py
 
 NOTES:
 
+Repositories for the Taylor and predictive regressions (conducted in R) are available upon request and review.
+
 Calculating the GDP trend component requires hundreds of linear regressions for each 'vintage' of GDP (or, better put, each FOMC meeting). This can take quite some time to complete. Users on older hardware are instructed to make a tea.
 
 RGDP or GDP: This is U.S. Real (inflation-adjusted) Gross Domestic Product (RGDP), a measure of growth for the United States economy. It can be thought of as the sum of all goods and services sold at a certain price over a period of time. In this dataset it is expressed in percent change for stationarity purposes. Produced by the BEA.
