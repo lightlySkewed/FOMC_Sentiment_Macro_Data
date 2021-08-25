@@ -1,6 +1,6 @@
 # FOMC-Shock-Macro-Variables
 
-This repository contains all data files and associated code needed to generate the shocked version of the sentiment data (and run the subsequent Taylor and ordinal (predictive) regressions) for the forthcoming paper _It's How They Say It: A Deep Learning Application of Tone Analysis to the FOMC Minutes_ by Michael Cassidy, Richard Hanes, Edgar Meij, and Miles Osborne.
+This repository contains all data files and associated code needed to generate the shocked version of the sentiment data (and run the subsequent Taylor and ordinal regressions) for the forthcoming paper _It's How They Say It: A Deep Learning Application of Tone Analysis to the FOMC Minutes_ by Michael Cassidy, Richard Hanes, Edgar Meij, and Miles Osborne.
 
 Specifically, this code:
 	
